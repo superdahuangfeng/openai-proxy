@@ -25,17 +25,9 @@ export default async function handleRequest(req: Request & { nextUrl?: URL }) {
   }
   
   const { pathname, search } = req.nextUrl ? req.nextUrl : new URL(req.url);
-  if (pathname === "/notes") {
-    return new Response(`notes`, {  // 返回文件内容
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "public, max-age=86400",  // 设置缓存时间一天
-      },
-    });
-  }
   if (pathname === "/invoke") {
-    console.log('invoke')
-    fetch('https://api.weixin.qq.com/tcb/invokecloudfunction?access_token', {
+    console.log('https://api.weixin.qq.com/tcb/invokecloudfunction?'+search)
+    await fetch('https://api.weixin.qq.com/tcb/invokecloudfunction?'+search, {
       method: 'POST'
     })
     return new Response(`invoke`, {  // 返回文件内容
@@ -44,24 +36,25 @@ export default async function handleRequest(req: Request & { nextUrl?: URL }) {
         "Cache-Control": "public, max-age=86400",  // 设置缓存时间一天
       },
     });
+  } else {
+    const url = new URL(pathname + search, "https://api.openai.com").href;
+    const headers = pickHeaders(req.headers, ["content-type", "authorization"]);
+
+    const res = await fetch(url, {
+      body: req.body,
+      method: req.method,
+      headers,
+    });
+
+    const resHeaders = {
+      ...CORS_HEADERS,
+      ...Object.fromEntries(
+        pickHeaders(res.headers, ["content-type", /^x-ratelimit-/, /^openai-/])
+      ),
+    };
+
+    return new Response(res.body, {
+      headers: resHeaders,
+    }); 
   }
-  const url = new URL(pathname + search, "https://api.openai.com").href;
-  const headers = pickHeaders(req.headers, ["content-type", "authorization"]);
-
-  const res = await fetch(url, {
-    body: req.body,
-    method: req.method,
-    headers,
-  });
-
-  const resHeaders = {
-    ...CORS_HEADERS,
-    ...Object.fromEntries(
-      pickHeaders(res.headers, ["content-type", /^x-ratelimit-/, /^openai-/])
-    ),
-  };
-
-  return new Response(res.body, {
-    headers: resHeaders,
-  });
 }
