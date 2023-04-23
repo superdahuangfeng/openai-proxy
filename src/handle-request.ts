@@ -23,25 +23,28 @@ export default async function handleRequest(req: Request & { nextUrl?: URL }) {
       headers: CORS_HEADERS,
     });
   }
-
-  const { pathname, search } = req.nextUrl ? req.nextUrl : new URL(req.url);
-
-  // 如果 URL 包含 "static"，直接返回本地文件内容
-  if (pathname.includes("static")) {
-    const filePath = `.${decodeURIComponent(pathname)}`; // 将 pathname 转换为本地文件路径
-    try {
-      const fileContent = await fs.readFile(filePath);  // 读取文件
-      return new Response(fileContent, {  // 返回文件内容
-        headers: {
-          "Content-Type": "text/html",
-          "Cache-Control": "public, max-age=86400",  // 设置缓存时间一天
-        },
-      });
-    } catch (err) {  // 文件不存在或读取错误时，返回 404 响应
-      return new Response("File not found", { status: 404 });
-    }
-  }
   
+  const { pathname, search } = req.nextUrl ? req.nextUrl : new URL(req.url);
+  if (pathname === "/notes") {
+    return new Response(`notes`, {  // 返回文件内容
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "public, max-age=86400",  // 设置缓存时间一天
+      },
+    });
+  }
+  if (pathname === "/invoke") {
+    console.log('invoke')
+    fetch('https://api.weixin.qq.com/tcb/invokecloudfunction?access_token', {
+      method: 'POST'
+    })
+    return new Response(`invoke`, {  // 返回文件内容
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "public, max-age=86400",  // 设置缓存时间一天
+      },
+    });
+  }
   const url = new URL(pathname + search, "https://api.openai.com").href;
   const headers = pickHeaders(req.headers, ["content-type", "authorization"]);
 
